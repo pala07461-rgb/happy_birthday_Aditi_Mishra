@@ -1,4 +1,4 @@
-﻿# 🌸 Aditi's Birthday Universe & Interactive Studio ✨
+# 🌸 Aditi's Birthday Universe & Interactive Studio ✨
 
 A personalized, interactive web universe created for **Aditi Mishra's Birthday**, featuring smooth scroll-driven storytelling, interactive mini-games, memories gallery, and a real-time admin telemetry inspector.
 
