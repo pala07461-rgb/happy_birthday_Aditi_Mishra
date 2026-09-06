@@ -1,0 +1,19 @@
+﻿# Dependencies
+node_modules/
+
+# Local analytics database
+data/analytics.json*
+/tmp/
+
+# Logs & temp files
+*.log
+.tempmediaStorage/
+test_*.html
+
+# Environment
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,22 @@
+﻿{
+  "name": "happy-birthday-aditi-mishra",
+  "version": "1.0.0",
+  "description": "Interactive Birthday Universe for Aditi Mishra with Mini-Games, Memory Gallery, and Real-Time Admin Telemetry",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "birthday",
+    "interactive",
+    "games",
+    "aditi",
+    "telemetry",
+    "vercel"
+  ],
+  "author": "Shubham",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

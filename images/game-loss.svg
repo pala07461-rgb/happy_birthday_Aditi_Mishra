@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="420" viewBox="0 0 600 420">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1b0e1e"/>
+      <stop offset="50%" stop-color="#2c142b"/>
+      <stop offset="100%" stop-color="#140b17"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.09"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.03"/>
+    </linearGradient>
+    <linearGradient id="winGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#2a4736"/>
+      <stop offset="100%" stop-color="#1c3325"/>
+    </linearGradient>
+    <linearGradient id="loseGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#541b2c"/>
+      <stop offset="100%" stop-color="#3b111e"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="600" height="420" rx="20" fill="url(#bgGrad)"/>
+  
+  <!-- Outer Card Frame -->
+  <rect x="25" y="25" width="550" height="370" rx="16" fill="url(#cardGrad)" stroke="rgba(255,182,216,0.2)" stroke-width="1.5" filter="url(#shadow)"/>
+  
+  <!-- Header Bar -->
+  <rect x="25" y="25" width="550" height="52" rx="16" fill="rgba(255,105,180,0.15)"/>
+  <circle cx="50" cy="51" r="7" fill="#ff5f56"/>
+  <circle cx="70" cy="51" r="7" fill="#ffbd2e"/>
+  <circle cx="90" cy="51" r="7" fill="#27c93f"/>
+  <text x="300" y="57" text-anchor="middle" font-family="'DM Sans', system-ui, sans-serif" font-weight="700" font-size="14" fill="#ffb0d3" letter-spacing="2">MATCH RESULT · GAME HISTORY 🎮</text>
+
+  <!-- Winner Row -->
+  <g transform="translate(45, 95)">
+    <rect width="510" height="90" rx="12" fill="url(#winGrad)" stroke="#4ade80" stroke-opacity="0.4" stroke-width="1.5"/>
+    <text x="25" y="42" font-family="'DM Sans', system-ui, sans-serif" font-size="28">👑</text>
+    <text x="70" y="40" font-family="'DM Sans', system-ui, sans-serif" font-weight="700" font-size="18" fill="#ffffff">1st Place : ME</text>
+    <text x="70" y="65" font-family="'DM Sans', system-ui, sans-serif" font-weight="500" font-size="13" fill="#86efac">PRO PLAYER · UNBEATEN ⚡</text>
+    <rect x="360" y="22" width="130" height="46" rx="23" fill="#166534" stroke="#4ade80" stroke-width="1"/>
+    <text x="425" y="51" text-anchor="middle" font-family="'DM Sans', system-ui, sans-serif" font-weight="800" font-size="18" fill="#bbf7d0">WINNER 🏆</text>
+  </g>
+
+  <!-- Loser Row (Aditi) -->
+  <g transform="translate(45, 205)">
+    <rect width="510" height="90" rx="12" fill="url(#loseGrad)" stroke="#f43f5e" stroke-opacity="0.4" stroke-width="1.5"/>
+    <text x="25" y="42" font-family="'DM Sans', system-ui, sans-serif" font-size="28">🥈</text>
+    <text x="70" y="40" font-family="'DM Sans', system-ui, sans-serif" font-weight="700" font-size="18" fill="#ffffff">2nd Place : ADITI 🌸</text>
+    <text x="70" y="65" font-family="'DM Sans', system-ui, sans-serif" font-weight="500" font-size="13" fill="#fda4af">Acha kheli par haar gayi 🥺</text>
+    <rect x="360" y="22" width="130" height="46" rx="23" fill="#881337" stroke="#f43f5e" stroke-width="1"/>
+    <text x="425" y="51" text-anchor="middle" font-family="'DM Sans', system-ui, sans-serif" font-weight="800" font-size="18" fill="#fecdd3">DEFEAT 💀</text>
+  </g>
+
+  <!-- Teasing Footer Note -->
+  <g transform="translate(300, 345)">
+    <rect x="-240" y="-18" width="480" height="38" rx="19" fill="rgba(255,255,255,0.06)" stroke="rgba(255,182,216,0.2)"/>
+    <text x="0" y="6" text-anchor="middle" font-family="'Cormorant Garamond', Georgia, serif" font-style="italic" font-weight="600" font-size="18" fill="#ffd1e3">
+      "Maine bola tha na mujhe game me koi nahi hara sakta! 😜"
+    </text>
+  </g>
+</svg>
