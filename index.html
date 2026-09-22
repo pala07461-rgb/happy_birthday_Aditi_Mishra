@@ -1874,6 +1874,45 @@
       to { transform: scale(1.06); box-shadow: 0 8px 30px rgba(244, 63, 94, 0.7); }
     }
 
+    /* Animated Text Writing / Handwriting Cursor for Game Notes */
+    .note-typing-cursor {
+      display: inline-block;
+      width: 3px;
+      height: 1.15em;
+      background: #e11d48;
+      margin-left: 2px;
+      vertical-align: -0.15em;
+      border-radius: 2px;
+      animation: noteCursorBlink 0.65s infinite ease-in-out;
+      box-shadow: 0 0 6px rgba(225, 29, 72, 0.7);
+    }
+
+    @keyframes noteCursorBlink {
+      0%, 100% { opacity: 1; transform: scaleY(1); }
+      50% { opacity: 0; transform: scaleY(0.7); }
+    }
+
+    .note-skip-hint {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #be123c;
+      opacity: 0.65;
+      letter-spacing: 0.03em;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      background: #ffe4ec;
+      padding: 2px 8px;
+      border-radius: 99px;
+      border: 1px solid #fecdd3;
+    }
+
+    .paper-note.is-typing {
+      cursor: pointer;
+    }
+
     /* Countdown display */
     .game-countdown {
       position: absolute;
@@ -3975,6 +4014,7 @@
               <div class="paper-note" id="paperNote">
                 <div class="paper-tape"></div>
                 <div class="paper-pin"></div>
+                <div class="note-skip-hint" id="noteSkipHint" style="display:none;">tap to skip ⚡</div>
                 <h4 class="paper-title" id="noteTitle">The Birthday Challenge! 📜</h4>
                 <div class="paper-body" id="noteBody">
                   iss challenge me 3 game hogi:<br><br>
@@ -5296,21 +5336,214 @@
       };
 
       /* -----------------------------------------------------
+         TEXT WRITING ANIMATION ENGINE FOR ALL GAME NOTES
+      ----------------------------------------------------- */
+      const paperNoteEl = document.getElementById('paperNote');
+      const noteSkipHint = document.getElementById('noteSkipHint');
+      let currentTypewriterTimer = null;
+      let currentTypewriterSkip = null;
+
+      function typewriteNote(titleHtml, bodyHtml, actionsHtml, onReady) {
+        if (currentTypewriterTimer) {
+          clearTimeout(currentTypewriterTimer);
+          currentTypewriterTimer = null;
+        }
+        if (currentTypewriterSkip && paperNoteEl) {
+          paperNoteEl.removeEventListener('click', currentTypewriterSkip);
+          currentTypewriterSkip = null;
+        }
+
+        noteActions.innerHTML = actionsHtml || '';
+        noteActions.style.opacity = '0';
+        noteActions.style.transform = 'translateY(10px)';
+        noteActions.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
+        noteActions.style.pointerEvents = 'none';
+
+        if (paperNoteEl) paperNoteEl.classList.add('is-typing');
+        if (noteSkipHint) {
+          noteSkipHint.style.display = 'block';
+          noteSkipHint.style.opacity = '0.7';
+        }
+
+        noteTitle.innerHTML = '';
+        noteBody.innerHTML = '';
+
+        let isFinished = false;
+
+        function finishImmediately() {
+          if (isFinished) return;
+          isFinished = true;
+          if (currentTypewriterTimer) {
+            clearTimeout(currentTypewriterTimer);
+            currentTypewriterTimer = null;
+          }
+          if (currentTypewriterSkip && paperNoteEl) {
+            paperNoteEl.removeEventListener('click', currentTypewriterSkip);
+            currentTypewriterSkip = null;
+          }
+          const oldCursors = paperNoteEl.querySelectorAll('.note-typing-cursor');
+          oldCursors.forEach(c => c.remove());
+
+          noteTitle.innerHTML = titleHtml;
+          noteBody.innerHTML = bodyHtml;
+          revealActions();
+        }
+
+        function revealActions() {
+          if (paperNoteEl) paperNoteEl.classList.remove('is-typing');
+          if (noteSkipHint) {
+            noteSkipHint.style.opacity = '0';
+            setTimeout(function() { noteSkipHint.style.display = 'none'; }, 300);
+          }
+          noteActions.style.opacity = '1';
+          noteActions.style.transform = 'translateY(0)';
+          noteActions.style.pointerEvents = 'auto';
+
+          if (typeof onReady === 'function') {
+            onReady();
+          }
+        }
+
+        currentTypewriterSkip = function(e) {
+          if (e.target && e.target.closest('button')) return;
+          finishImmediately();
+        };
+        if (paperNoteEl) paperNoteEl.addEventListener('click', currentTypewriterSkip);
+
+        function runTyping(targetEl, htmlContent, onDone) {
+          const temp = document.createElement('div');
+          temp.innerHTML = htmlContent;
+
+          const cursor = document.createElement('span');
+          cursor.className = 'note-typing-cursor';
+
+          const jobs = [];
+          function buildSkeleton(srcNode, destNode) {
+            for (let i = 0; i < srcNode.childNodes.length; i++) {
+              const child = srcNode.childNodes[i];
+              if (child.nodeType === Node.TEXT_NODE) {
+                const text = child.nodeValue;
+                const newTextNode = document.createTextNode('');
+                destNode.appendChild(newTextNode);
+                jobs.push({
+                  node: newTextNode,
+                  chars: Array.from(text)
+                });
+              } else if (child.nodeType === Node.ELEMENT_NODE) {
+                const clone = child.cloneNode(false);
+                destNode.appendChild(clone);
+                buildSkeleton(child, clone);
+              }
+            }
+          }
+
+          buildSkeleton(temp, targetEl);
+          targetEl.appendChild(cursor);
+
+          let jobIndex = 0;
+          let charIndex = 0;
+
+          function nextStep() {
+            if (isFinished) return;
+            if (jobIndex >= jobs.length) {
+              cursor.remove();
+              onDone();
+              return;
+            }
+
+            const currentJob = jobs[jobIndex];
+            if (charIndex < currentJob.chars.length) {
+              const ch = currentJob.chars[charIndex];
+              currentJob.node.nodeValue += ch;
+              charIndex++;
+
+              if (currentJob.node.parentNode) {
+                currentJob.node.parentNode.insertBefore(cursor, currentJob.node.nextSibling);
+              }
+
+              let delay = 14;
+              if (ch === '.' || ch === '!' || ch === '?') delay = 80;
+              else if (ch === ',' || ch === ':') delay = 40;
+
+              currentTypewriterTimer = setTimeout(nextStep, delay);
+            } else {
+              jobIndex++;
+              charIndex = 0;
+              currentTypewriterTimer = setTimeout(nextStep, 8);
+            }
+          }
+
+          nextStep();
+        }
+
+        runTyping(noteTitle, titleHtml, function() {
+          if (isFinished) return;
+          currentTypewriterTimer = setTimeout(function() {
+            runTyping(noteBody, bodyHtml, function() {
+              if (isFinished) return;
+              if (currentTypewriterSkip && paperNoteEl) {
+                paperNoteEl.removeEventListener('click', currentTypewriterSkip);
+                currentTypewriterSkip = null;
+              }
+              revealActions();
+            });
+          }, 110);
+        });
+      }
+
+      /* -----------------------------------------------------
          STEP 1: NOTE 1 & NOTE 2 (RULES FOR GAME 1)
       ----------------------------------------------------- */
+      let note1HasAnimated = false;
+      function triggerNote1Typewriter() {
+        if (note1HasAnimated) return;
+        note1HasAnimated = true;
+        const n1Title = 'The Birthday Challenge! 📜';
+        const n1Body = 'iss challenge me 3 game hogi:<br><br>' +
+          '<strong>1. Catch the balloon 🎈</strong><br>' +
+          '<strong>2. Cut the cake 🎂</strong><br>' +
+          '<strong>3. Pop the balloon 💥</strong><br><br>' +
+          'okey jo jada point layega wo jit jayega!';
+        const n1Actions = '<button class="paper-btn primary" id="notePrimaryBtn">Okey →</button>';
+
+        typewriteNote(n1Title, n1Body, n1Actions, function() {
+          const btn = document.getElementById('notePrimaryBtn');
+          if (btn) btn.addEventListener('click', showNote2);
+        });
+      }
+
       const notePrimaryBtn = document.getElementById('notePrimaryBtn');
       if (notePrimaryBtn) {
         notePrimaryBtn.addEventListener('click', showNote2);
       }
 
+      // Trigger Note 1 writing animation when scrolling into view
+      if ('IntersectionObserver' in window) {
+        const gameObserver = new IntersectionObserver(function(entries) {
+          entries.forEach(function(entry) {
+            if (entry.isIntersecting && !note1HasAnimated) {
+              triggerNote1Typewriter();
+              gameObserver.disconnect();
+            }
+          });
+        }, { threshold: 0.2 });
+        if (gameArenaWrap) gameObserver.observe(gameArenaWrap);
+      } else {
+        triggerNote1Typewriter();
+      }
+
       function showNote2() {
-        noteTitle.innerHTML = 'Game 1: Catch the Balloon 🎈';
-        noteBody.innerHTML = 'isme balloon kahi bhi aa jayenge, jaise hi aaye unko <strong>apne house me daalna hai kheench ke!</strong><br><br>' +
+        const n2Title = 'Game 1: Catch the Balloon 🎈';
+        const n2Body = 'isme balloon kahi bhi aa jayenge, jaise hi aaye unko <strong>apne house me daalna hai kheench ke!</strong><br><br>' +
           '• Normal balloon = <strong>1 point</strong><br>' +
           '• Heart balloon = <strong>5 points ✨</strong><br><br>' +
           'Jo pehle <strong>20 points</strong> karega wo winner hoga, thik hai?';
-        noteActions.innerHTML = '<button class="paper-btn primary" id="startG1Btn">Okey, Shuru Karo! →</button>';
-        document.getElementById('startG1Btn').addEventListener('click', startGame1);
+        const n2Actions = '<button class="paper-btn primary" id="startG1Btn">Okey, Shuru Karo! →</button>';
+
+        typewriteNote(n2Title, n2Body, n2Actions, function() {
+          const btn = document.getElementById('startG1Btn');
+          if (btn) btn.addEventListener('click', startGame1);
+        });
       }
 
       /* -----------------------------------------------------
@@ -5646,8 +5879,9 @@
         window.triggerGameNote3 = showNote3;
         paperOverlay.style.display = 'flex';
         paperOverlay.scrollTop = 0;
-        noteTitle.innerHTML = 'Rules: 2. Cut the cake 🎂';
-        noteBody.innerHTML =
+
+        const n3Title = 'Rules: 2. Cut the cake 🎂';
+        const n3Body =
           'iss baar to tu jeet gayi... lekin agli baar jeet ke dikha! 😉<br>' +
           '<strong>🎂 Cake Cutting Rules:</strong><br>' +
           'Beech me cake aayega, use mere se pehle tap karke kaatna hai (<strong>+1 point</strong>).<br>' +
@@ -5655,7 +5889,7 @@
           'Beech me kabhi bhi <strong>STONE</strong> aa sakta hai! Uspe knife laga to <strong>-1 point MINUS</strong> hoga!<br>' +
           'Aur jeetne ke liye <strong>10 points</strong> chahiye, got it!';
 
-        noteActions.innerHTML =
+        const n3Actions =
           '<button class="paper-btn secondary" id="cakeHmmBtn">Hmm</button>' +
           '<button class="paper-btn primary highlighted cake-sprint-btn" id="cakeYesBtn">' +
             '<div class="char-body-layer">' +
@@ -5678,7 +5912,9 @@
             '<span class="cake-btn-label">Okey! 👍</span>' +
           '</button>';
 
-        setupMischievousButtons();
+        typewriteNote(n3Title, n3Body, n3Actions, function() {
+          setupMischievousButtons();
+        });
       }
 
       function setupMischievousButtons() {
@@ -5785,11 +6021,14 @@
                 noteActions.appendChild(thikHBtn);
 
                 thikHBtn.addEventListener('click', function() {
-                  noteTitle.innerHTML = 'Match On! 🔥';
-                  noteBody.innerHTML = 'chal thik h ready! iss baar to mai hi victory le ke jaunga.<br><br>' +
+                  const matchTitle = 'Match On! 🔥';
+                  const matchBody = 'chal thik h ready! iss baar to mai hi victory le ke jaunga.<br><br>' +
                     'Isme dekhte h iss match me kon jeetta hai! <strong>10 points</strong> jiske pehle ho gaye wo winner. 🎂⚔️';
-                  noteActions.innerHTML = '<button class="paper-btn primary" id="startG2Btn">OK, Start! →</button>';
-                  document.getElementById('startG2Btn').addEventListener('click', startGame2);
+                  const matchActions = '<button class="paper-btn primary" id="startG2Btn">OK, Start! →</button>';
+
+                  typewriteNote(matchTitle, matchBody, matchActions, function() {
+                    document.getElementById('startG2Btn').addEventListener('click', startGame2);
+                  });
                 });
               }, 600);
             }, 500);
@@ -5937,8 +6176,10 @@
       ----------------------------------------------------- */
       function showNote4(playerWon) {
         paperOverlay.style.display = 'flex';
-        noteTitle.innerHTML = 'Game 3: Pop the Balloon! 💥';
-        noteBody.innerHTML = 'haha 😂 kaha tha na iss match me mai jeet jaunga!<br>' +
+        paperOverlay.scrollTop = 0;
+
+        const n4Title = 'Game 3: Pop the Balloon! 💥';
+        const n4Body = 'haha 😂 kaha tha na iss match me mai jeet jaunga!<br>' +
           'ab bas tere pe last mauka bacha hai, agar isme bhi haar gayi to firrr....<br><br>' +
           '<strong>Final Match Rules:</strong><br>' +
           'Isme Pink aur Sky Blue balloons ek saath tezi se udd rahe honge!<br>' +
@@ -5947,8 +6188,11 @@
           '⚠️ <strong>Agar opponent ka Sky Blue balloon phoda to point MINUS (-) honge!</strong><br>' +
           'Jo pehle <strong>20 points</strong> karega wo winner!';
 
-        noteActions.innerHTML = '<button class="paper-btn primary" id="startG3Btn">Chalo Shuru Karo! →</button>';
-        document.getElementById('startG3Btn').addEventListener('click', startGame3);
+        const n4Actions = '<button class="paper-btn primary" id="startG3Btn">Chalo Shuru Karo! →</button>';
+
+        typewriteNote(n4Title, n4Body, n4Actions, function() {
+          document.getElementById('startG3Btn').addEventListener('click', startGame3);
+        });
       }
 
       /* -----------------------------------------------------
@@ -6220,8 +6464,8 @@
         const totalP = totalScores.g1Player + totalScores.g2Player + totalScores.g3Player;
         const totalS = totalScores.g1Shubham + totalScores.g2Shubham + totalScores.g3Shubham;
 
-        noteTitle.innerHTML = 'Grand Finale Result! 🏆';
-        noteBody.innerHTML =
+        const n5Title = 'Grand Finale Result! 🏆';
+        const n5Body =
           '<table style="width:100%;font-size:13.5px;margin-bottom:15px;border-collapse:collapse;color:#260a1a;">' +
             '<tr style="border-bottom:2px solid #e11d48;text-align:left;">' +
               '<th style="padding:6px;">Game</th><th>Aditi 🌸</th><th>Shubham 👦</th>' +
@@ -6241,16 +6485,21 @@
             'kya hua mene kuchh promiss kiya tha kya? ptani mujhe to yadd nhi aa rha ki kiya bola tha 😜🏃‍♂️💨"' +
           '</p>';
 
-        noteActions.innerHTML = '<button class="paper-btn primary" id="finishChallengeBtn">Aage Dekho... 📜👇</button>';
+        const n5Actions = '<button class="paper-btn primary" id="finishChallengeBtn">Aage Dekho... 📜👇</button>';
 
         // Automatic Scroll Lock release
         setGameScrollLock(false);
 
-        document.getElementById('finishChallengeBtn').addEventListener('click', function() {
-          paperOverlay.style.display = 'none';
-          const apology = document.getElementById('apologyScene');
-          if (apology) {
-            apology.scrollIntoView({ behavior: 'smooth' });
+        typewriteNote(n5Title, n5Body, n5Actions, function() {
+          const finishBtn = document.getElementById('finishChallengeBtn');
+          if (finishBtn) {
+            finishBtn.addEventListener('click', function() {
+              paperOverlay.style.display = 'none';
+              const apology = document.getElementById('apologyScene');
+              if (apology) {
+                apology.scrollIntoView({ behavior: 'smooth' });
+              }
+            });
           }
         });
       }
